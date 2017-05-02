@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+	<link rel="stylesheet" href="../bootstrap.css">
+	<link rel="stylesheet" href="../css/book.css">
+	<script src="../angular.js"></script>	
+</head>
+<body ng-app="myapp" ng-cloak>
+	<div class="box" ng-controller="MyControl">
+		<div class="shadow" ng-show='hideD'></div>
+		<div class="shadow" ng-show='hideR'></div>
+		<div class="header">
+			<p>图书管理系统</p>
+		</div>
+		<!-- 搜索 -->
+		<div class="title">
+			<!-- 搜索框 -->
+			<form class="bs-example bs-example-form" role="form">
+		        <div class="input-group">
+		            <span class="input-group-addon">{{selec}}搜索</span>
+		            <input type="text" class="form-control" placeholder="请输入{{selec}}" ng-model="inputVal">
+		        </div>
+		    </form>
+		    <!-- 下拉菜单 -->
+			<div class="dropdown">
+			    <button type="button" class="btn dropdown-toggle" id="dropdownMenu1" data-toggle="dropdown">{{selec}}
+			        <span class="caret"></span>
+			    </button>
+			    <div class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
+			        <option role="presentation" ng-click="selecFn($index)" ng-repeat="sel in arr">{{sel.value}}</option>
+			    </div>
+			</div>
+		</div>
+		<!-- 列表 -->
+		<expander item='item' revise-fn="reviseFn(num,id)" type-fn="typeFn(ty)" delete-fn="deleteFn(num,id)"></expander>
+		<!-- <table class="table table-striped"> -->
+			<!-- 标题 -->
+			<!-- <thead>
+				<tr>
+					<th>序号</th>
+					<th ng-click="changeOrder('book')">书名</th>
+					<th ng-click="changeOrder('name')">作者</th>
+					<th ng-click="changeOrder('price')">价格</th>
+					<th></th>
+					<th></th>
+				</tr>
+			</thead> -->
+			<!-- 书目 -->
+			<!-- <tbody>
+				<tr ng-repeat="book in item | filter:typeFn(ty) | orderBy:order:positive">
+					<td>{{$index+1}}</td>
+					<td>{{book.book}}</td>
+					<td>{{book.name}}</td>
+					<td>{{book.price}}</td>
+					<td><button type="button" class="btn btn-primary write" ng-click="reviseFn($index)">修改</button></td>
+					<td><button type="button" class="btn btn-danger" ng-click="deleteFn($index)">删除</button></td>
+				</tr>
+			</tbody>	 -->
+		<!-- </table> -->
+
+		<!-- 删除框 -->
+		<div class="del alert alert-danger alert-dismissible fade in" ng-show="hideD" role="alert">
+			<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+				<span ng-click="chaD($event)">×</span>
+			</button>
+			<p>确定要删除吗？</p>
+			<p>
+				<button type="button" class="btn btn-danger" ng-click="sureD()">确定</button>
+				<button type="button" class="btn btn-default" ng-click="cancleD()">取消</button>
+			</p>
+		</div>
+
+		<!-- 修改框 -->
+		<div class="revise alert alert-danger alert-dismissible fade in" role="alert" ng-show="hideR">
+			<p>修改</p>
+			<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+				<span ng-click="chaR($event)">×</span>
+			</button>
+			<div class="form-group has-feedback">
+				<label class="control-label reviseInput" for="inputSuccess2">书名</label>
+				<input type="text" class="form-control" id="inputSuccess2" aria-describedby="inputSuccess2Status" value="{{reviseItem.book}}" ng-model="reviseItem.book">
+				<label class="control-label reviseInput" for="inputSuccess2">作者</label>
+				<input type="text" class="form-control" id="inputSuccess2" aria-describedby="inputSuccess2Status" value="{{reviseItem.name}}" ng-model="reviseItem.name">
+				<label class="control-label reviseInput" for="inputSuccess2">价格</label>
+				<input type="text" class="form-control" id="inputSuccess2" aria-describedby="inputSuccess2Status" value="{{reviseItem.price}}" ng-model="reviseItem.price">
+			</div>
+			<div class="revise-btn">
+				<div class="btn-box">
+					<div class="err">
+						<span ng-hide="err">内容输入不正确</span>
+					</div>
+					<button type="button" class="btn btn-danger" ng-click="sureR(reviseItem)">确定</button>
+					<button type="button" class="btn btn-default" ng-click="cancleR()">取消</button>
+				</div>
+			</div>	
+		</div>	
+
+		<!-- 新增 -->
+		<form class="addBox form-inline">
+			<!-- 新增信息输入框 -->
+			<div class="form-group">
+				<input type="text" class="form-control" placeholder="书名" ng-model="add.book">
+			</div>
+			<div class="form-group">
+				<input type="text" class="form-control" placeholder="作者" ng-model="add.name">
+			</div>
+			<div class="form-group">
+				<input type="text" class="form-control" placeholder="价格" ng-model="add.price">
+			</div>
+			<!-- 新增按钮 -->
+			<button type="submit" class="btn btn-default" ng-click="addFn()">新增</button>
+				<!-- 错误提示框 -->
+				<div class="add alert alert-danger alert-dismissible fade in" ng-show="hideA" role="alert">
+				<button type="button" class="close" ng-click="sureA()">
+					<span>×</span>
+				</button>
+				<p>输入不符合要求</p>
+				<button type="button" class="add-btn btn btn-danger" ng-click="sureA()">确定</button>
+			</div>
+		</form>
+
+	</div>
+
+	<script>
+		var app = angular.module('myapp',[]);
+		// 配置服务
+		app.config(['$provide',function($provide){
+
+		}])
+		app.factory('httpService',['$http',function($http){
+			return $http.post('/book')
+		}])
+
+		app.directive('expander',function(){
+			return {
+				restrict:'E',
+				scope:{item:'=item',typeFn:'&',reviseFn:'&',deleteFn:'&'},
+				template:`<table class="table table-striped">
+							<thead>
+								<tr>
+									<th ng-click="changeOrder('num')">序号</th>
+									<th ng-click="changeOrder('book')">书名</th>
+									<th ng-click="changeOrder('name')">作者</th>
+									<th ng-click="changeOrder('price')">价格</th>
+									<th></th>
+									<th></th>
+								</tr>
+							</thead> 
+							<tbody>
+								<tr ng-repeat="book in item | filter:typeFn(ty) | orderBy:order:positive">
+									<td>{{book.num}}</td>
+									<td>{{book.book}}</td>
+									<td>{{book.name}}</td>
+									<td>{{book.price}}</td>
+									<td><button type="button" class="btn btn-primary write" ng-click="reviseFn({num:book.num,id:book._id})">修改</button></td>
+									<td><button type="button" class="btn btn-danger" ng-click="deleteFn({num:book.num,id:book._id})">删除</button></td>
+								</tr>
+							</tbody>
+						</table>`,
+				replace:true,
+				transclude:true,
+				link:function(scope,element,attrs){
+					// 排序
+					scope.chan = false;
+					scope.order = "num";
+					scope.positive = false;
+					scope.changeOrder = function(num){
+						this.chan = !this.chan;
+						this.order = num;
+						this.positive = !this.positive;
+					}
+				}
+			}
+		})
+		app.controller('MyControl',['$scope','httpService','$http',function($scope,httpService,$http){
+			$scope.hideD = false;
+			$scope.item = [
+				// {book:'ggg', name:'zzz', price:39},
+				// {book:'aaa', name:'fff', price:88},
+				// {book:'zzz', name:'qqq', price:20}
+			]
+			
+			
+			$scope.num=0;
+			$scope.id="";
+			$.ajax({
+				url:"/book",
+				type:"post",
+				async:false,
+				success:function(data){
+					$scope.result = data.booklist;
+					for(i in $scope.result){
+						$scope.item.push($scope.result[i]);
+					}
+					for(var i=0; i<$scope.item.length; i++){
+						$scope.item[i]['num'] = i+1
+					}
+				}
+			})
+			$scope.selec = "书名";
+			$scope.index = 0;
+			$scope.arr = [
+				{"value":"书名","type":"book"},
+				{"value":"作者","type":"name"},
+				{"value":"价格","type":"price"}
+			]
+			// 搜索输入选择
+			$scope.ty = "book";
+			$scope.typeFn = function(ty){
+				var obj = {};
+				obj[ty] = this.inputVal;
+				return obj;
+			}
+			$scope.selecFn = function(index){
+				$scope.selec = $scope.arr[index].value;
+				$scope.ty = $scope.arr[index].type;
+			};
+
+			
+
+			// // 排序
+			// $scope.chan = false;
+			// $scope.order = "num";
+			// $scope.positive = false;
+			// $scope.changeOrder = function(num){
+			// 	this.chan = !this.chan;
+			// 	this.order = num;
+			// 	this.positive = !this.positive;
+			// }
+
+			// 删除
+			
+			$scope.deleteFn = function(num,id){
+
+				$scope.num=num;
+				$scope.hideD = true;
+				$scope.sureD = function(){
+					// var delTr = $('tbody tr')[num];
+					// $('tbody tr')[num-1].remove();
+					$scope.hideD = false;
+					for(var i=0;i<=$scope.item.length-1;i++){
+						if($scope.item[i].num>num){
+							$scope.item[i].num--;
+						}
+					}
+					$.ajax({
+						url:"/delete",
+						type:"post",
+						async:false,//
+						data:{_id:id},
+						success:function(data){
+							$scope.item.splice(num-1,1)
+						}
+					})	
+				}
+				$scope.cancleD = function(){
+					$scope.hideD = false;
+				}
+				$scope.chaD = function($event){
+					$event.stopPropagation();
+					$scope.hideD = false
+				}
+			}
+			$scope.reviseItem={};
+			// 修改
+			$scope.hideR = false;
+			$scope.err = true;
+			$scope.reviseFn = function(num,id){
+				$scope.err = true;
+				$scope.hideR = true;
+				console.log($scope.item[num-1].book)
+				$scope.reviseItem.book = $scope.item[num-1].book;
+				console.log($scope.reviseItem.book)
+				$scope.reviseItem.name = $scope.item[num-1].name;
+				$scope.reviseItem.price = $scope.item[num-1].price;
+				$scope.reviseItem.price = parseFloat($scope.reviseItem.price)
+				$scope.reviseItem._id = id;
+				$scope.master = {};
+				var res = {reg:/^(0|[1-9][0-9]*)+(\.\d+)?$/}
+				$scope.sureR = function(){
+					if(res.reg.test($scope.reviseItem.price)&&$scope.reviseItem.book.trim()!=""&&$scope.reviseItem.name!=""){
+						$scope.hideR = false;
+						$scope.err = true;
+						// $scope.master = angular.copy($scope.reviseItem);
+						// console.log($scope.master);
+						$.ajax({
+							url:"/update",
+							type:"post",
+							async:false,
+							data:$scope.reviseItem,
+							success:function(data){
+								$scope.item[num-1].book=$scope.reviseItem.book;
+								$scope.item[num-1].name=$scope.reviseItem.name  ;
+								$scope.item[num-1].price = parseFloat($scope.reviseItem.price);
+							}
+						})
+					}else{
+						$scope.err = false;
+					}
+					
+				}
+				$scope.cancleR = function(){
+					$scope.hideR = false;	
+				}
+				$scope.chaR = function($event){
+					$event.stopPropagation();
+					$scope.hideR = false
+				}
+			}
+
+			$scope.add={}
+			$scope.add.book='';
+			$scope.add.name='';
+			$scope.add.price='';
+
+			//新增
+			$scope.hideA = false;
+			$scope.addFn = function(){
+				// if($scope.add==null||angular.equals({}, $scope.add)) {  
+				//    //内容为空不做任何操作
+				// }else{
+					// $scope.inpVal = $scope.add.price
+					if($scope.add.book.trim()!="" && $scope.add.name.trim()!="" && !isNaN($scope.add.price.trim())&&$scope.add.price.trim()>0){
+						console.log(1)
+						var len = $scope.item.length;
+						$scope.add.num = len+1;
+						$scope.add.price = parseFloat($scope.add.price);		
+						// $.post("/add",$scope.add,function(data){
+							
+						// })
+						$.ajax({
+							url:"/add",
+							type:"post",
+							async:false,
+							data:$scope.add,
+							success:function(data){
+								$scope.item.push($scope.add);
+							}
+						})
+						$scope.add = {};
+					}else{
+						console.log(2)
+						$scope.hideA = true;
+						$scope.sureA = function(){
+							$scope.hideA = false;
+						}
+					}	
+				// }
+			}
+		}])
+	</script>
+	<script src="../jquery-1.12.3.js"></script>
+	<script src="../bootstrap.js"></script>
+</body>
+</html>
